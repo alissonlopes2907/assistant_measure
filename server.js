@@ -474,16 +474,12 @@ async function processAudioQueue(ProfileName) {
   }
 }
 
-// Função para fazer o download da mídia (mantém a lógica anterior)
+// Função para fazer o download da mídia (atualizada para salvar em /tmp)
 async function downloadAudioTwilio(MediaUrl0, From) {
   try {
-    const dir = path.resolve(__dirname, 'midia');
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir);
-    }
-
+    const dir = '/tmp'; // Diretório temporário no Heroku
     const fileName = `${From}-${Date.now()}.ogg`;
-    const filePath = path.resolve(dir, fileName);
+    const filePath = path.resolve(dir, fileName); // Caminho completo para o arquivo temporário
 
     const response = await axios({
       url: MediaUrl0,
@@ -500,7 +496,7 @@ async function downloadAudioTwilio(MediaUrl0, From) {
 
     const saveMidia = new Promise((resolve, reject) => {
       writer.on('finish', () => {
-        console.log('Mídia baixada e salva:', filePath);
+        console.log('Mídia baixada e salva em /tmp:', filePath);
         resolve(filePath);
       });
       writer.on('error', (err) => {
@@ -577,35 +573,30 @@ async function processImageQueue(userName) {
   }
 }
 
-
 // Função para fazer o download da imagem do Twilio
 async function downloadImageTwilio(MediaUrl0, From, ProfileName) {
   try {
-    const dir = path.resolve(__dirname, 'midiaImage');
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir);
+    const dir = '/tmp'; // Usando o diretório temporário do Heroku
+    const sanitizedFrom = From.replace(/\+/g, ''); // Remover caracteres especiais
+    const fileName = `${sanitizedFrom}-${Date.now()}.jpeg`; // Nome do arquivo com timestamp
+    const filePath = path.resolve(dir, fileName); // Caminho completo para o arquivo
+
+    // Envia uma mensagem para o Discord informando sobre a imagem
+    const server = '1303379760797450260';
+    const guild = discord.guilds.cache.get(server);
+ 
+    if (!guild) {
+      return console.log('Servidor não encontrado para o contato.');
     }
 
-    // Remova caracteres especiais do nome do arquivo, como '+'
-    const sanitizedFrom = From.replace(/\+/g, '');
-    const fileName = `${sanitizedFrom}-${Date.now()}.jpeg`;
-    const filePath = path.resolve(dir, fileName);
-    
+    try {
+      const imageFile = `Imagem enviada do contato ${ProfileName}: ${fileName}`;
+      await sendMessageDiscord(guild, From, imageFile, ProfileName);
+    } catch (error) {
+      console.error('Erro ao processar a mensagem:', error);
+    }
 
-    const server = '1303379760797450260'
-    const guild = discord.guilds.cache.get(server)
- 
-     if (!guild) {
-       return console.log('Servidor não encontrado para o contato.')
-     }
-   
-     try {
-        const imageFile = `Imagem enviada do contato ${ProfileName}: ${fileName}`
-       await sendMessageDiscord(guild, From, imageFile, ProfileName);
-     } catch (error) {
-       console.error('Erro ao processar a mensagem:', error);
-     }
- 
+    // Faz o download da imagem
     const response = await axios({
       url: MediaUrl0,
       method: 'GET',
@@ -621,16 +612,16 @@ async function downloadImageTwilio(MediaUrl0, From, ProfileName) {
 
     return new Promise((resolve, reject) => {
       writer.on('finish', () => {
-        console.log('Mídia baixada e salva:', filePath);
-        resolve(filePath); // O arquivo está salvo, retorna o caminho
+        console.log('Imagem baixada e salva em /tmp:', filePath);
+        resolve(filePath); // Retorna o caminho do arquivo salvo
       });
       writer.on('error', (err) => {
-        console.error('Erro ao salvar a mídia:', err);
+        console.error('Erro ao salvar a imagem:', err);
         reject(err);
       });
     });
   } catch (error) {
-    console.error('Erro ao fazer o download da mídia:', error);
+    console.error('Erro ao fazer o download da imagem:', error);
     throw error; // Lança o erro para ser tratado fora desta função
   }
 }
