@@ -71,7 +71,7 @@ const openai = new OpenAI({
 let messageAccumulator = {}; // Armazena as mensagens acumuladas por usuário
 let timers = {}; // Armazena os temporizadores de cada usuário
 let currentSteps = {}; // Armazena o estado atual de contagem regressiva por usuário
-const timeSteps = [10, 10, 10, 10, 10]; // Temporizadores progressivos
+const timeSteps = [5, 5, 5, 5, 5]; // Temporizadores progressivos
 let isProcessing = {}; // Armazena o estado de processamento de cada usuário
 
 // Função que reseta o temporizador e acumula as mensagens para cada usuário
@@ -747,7 +747,7 @@ async function processMessageImage(filePath, from, userName) {
  
    // Verifica o status e exibe a resposta gerada
    await checkRunStatus(thread, runID);
-   await retrieveAssistantResponse( thread, from, userName);
+   await retrieveAssistantResponse(thread, from, userName);
    
     
   } catch (error) {
