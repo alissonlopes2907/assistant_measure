@@ -476,40 +476,64 @@ async function processAudioQueue(ProfileName) {
 
 // Função para fazer o download da mídia (atualizada para salvar em /tmp)
 async function downloadAudioTwilio(MediaUrl0, From) {
-  try {
-    const dir = '/tmp'; // Diretório temporário no Heroku
-    const fileName = `${From}-${Date.now()}.ogg`;
-    const filePath = path.resolve(dir, fileName); // Caminho completo para o arquivo temporário
+  const dir = '/tmp';
+  const fileName = `${From}-${Date.now()}.ogg`;
+  const filePath = path.resolve(dir, fileName);
 
-    const response = await axios({
-      url: MediaUrl0,
-      method: 'GET',
-      responseType: 'stream',
-      auth: {
-        username: process.env.ACCOUNT_SID,
-        password: process.env.AUTH_TOKEN,
-      },
-    });
-
-    const writer = fs.createWriteStream(filePath);
-    response.data.pipe(writer);
-
-    const saveMidia = new Promise((resolve, reject) => {
-      writer.on('finish', () => {
-        console.log('Mídia baixada e salva em /tmp:', filePath);
-        resolve(filePath);
-      });
-      writer.on('error', (err) => {
-        console.error('Erro ao salvar a mídia:', err);
-        reject(err);
-      });
-    });
-
-    return saveMidia;
-  } catch (error) {
-    console.error('Erro ao fazer o download da mídia:', error);
+  // Verifica se o diretório existe e o cria se necessário
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
   }
-}
+
+  return new Promise((resolve, reject) => {
+    // Função para tentar baixar o áudio
+    const attemptDownload = async () => {
+      try {
+        const response = await axios({
+          url: MediaUrl0,
+          method: 'GET',
+          responseType: 'stream',
+          auth: {
+            username: process.env.ACCOUNT_SID,
+            password: process.env.AUTH_TOKEN,
+          },
+        });
+
+        // Verifica o status da resposta
+        if (response.status === 200) {
+          clearInterval(intervalId); // Para o intervalo ao encontrar o áudio
+          console.log(`Áudio disponível, prosseguindo com o download: ${filePath}`);
+
+          const writer = fs.createWriteStream(filePath);
+          response.data.pipe(writer);
+
+          writer.on('finish', () => {
+            console.log(`Áudio baixado com sucesso: ${filePath}`);
+            resolve(filePath); // Resolve a Promise com o caminho do arquivo baixado
+          });
+
+          writer.on('error', (err) => {
+            console.error('Erro ao salvar a mídia:', err);
+            reject(err); // Rejeita a Promise em caso de erro ao salvar
+          });
+        } else {
+          console.log(`Status inesperado ao verificar áudio: ${response.status}`);
+        }
+      } catch (error) {
+        if (error.response && error.response.status === 404) {
+          console.log('Áudio ainda não disponível, tentando novamente em 2 segundos...');
+        } else {
+          console.error('Erro ao tentar baixar o áudio:', error);
+          clearInterval(intervalId); // Para o intervalo em caso de erro irreversível
+          reject(error); // Rejeita a Promise em caso de erro
+        }
+      }
+    };
+
+      // Define um intervalo para verificar a disponibilidade do áudio a cada 2 segundos
+      const intervalId = setInterval(attemptDownload, 2000);
+    });
+  }
 
 async function transcreverAudio(filePath) {
   
@@ -574,56 +598,82 @@ async function processImageQueue(userName) {
 }
 
 // Função para fazer o download da imagem do Twilio
+
 async function downloadImageTwilio(MediaUrl0, From, ProfileName) {
-  try {
-    const dir = '/tmp'; // Usando o diretório temporário do Heroku
-    const sanitizedFrom = From.replace(/\+/g, ''); // Remover caracteres especiais
-    const fileName = `${sanitizedFrom}-${Date.now()}.jpeg`; // Nome do arquivo com timestamp
-    const filePath = path.resolve(dir, fileName); // Caminho completo para o arquivo
+  const dir = '/tmp'; // Diretório temporário do Heroku
+  const sanitizedFrom = From.replace(/\+/g, ''); // Remove caracteres especiais
+  const fileName = `${sanitizedFrom}-${Date.now()}.jpeg`; // Nome do arquivo com timestamp
+  const filePath = path.resolve(dir, fileName); // Caminho completo para o arquivo
 
-    // Envia uma mensagem para o Discord informando sobre a imagem
-    const server = '1303379760797450260';
-    const guild = discord.guilds.cache.get(server);
- 
-    if (!guild) {
-      return console.log('Servidor não encontrado para o contato.');
-    }
-
-    try {
-      const imageFile = `Imagem enviada do contato ${ProfileName}: ${fileName}`;
-      await sendMessageDiscord(guild, From, imageFile, ProfileName);
-    } catch (error) {
-      console.error('Erro ao processar a mensagem:', error);
-    }
-
-    // Faz o download da imagem
-    const response = await axios({
-      url: MediaUrl0,
-      method: 'GET',
-      responseType: 'stream',
-      auth: {
-        username: process.env.ACCOUNT_SID,
-        password: process.env.AUTH_TOKEN,
-      },
-    });
-
-    const writer = fs.createWriteStream(filePath);
-    response.data.pipe(writer);
-
-    return new Promise((resolve, reject) => {
-      writer.on('finish', () => {
-        console.log('Imagem baixada e salva em /tmp:', filePath);
-        resolve(filePath); // Retorna o caminho do arquivo salvo
-      });
-      writer.on('error', (err) => {
-        console.error('Erro ao salvar a imagem:', err);
-        reject(err);
-      });
-    });
-  } catch (error) {
-    console.error('Erro ao fazer o download da imagem:', error);
-    throw error; // Lança o erro para ser tratado fora desta função
+  // Verifica se o diretório existe e o cria se necessário
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
   }
+
+  return new Promise((resolve, reject) => {
+    // Função para tentar baixar a imagem
+    const attemptDownload = async () => {
+      try {
+        const response = await axios({
+          url: MediaUrl0,
+          method: 'GET',
+          responseType: 'stream',
+          auth: {
+            username: process.env.ACCOUNT_SID,
+            password: process.env.AUTH_TOKEN,
+          },
+        });
+
+        // Verifica o status da resposta
+        if (response.status === 200) {
+          clearInterval(intervalId); // Para o intervalo ao encontrar a imagem
+          console.log(`Imagem disponível, prosseguindo com o download: ${filePath}`);
+
+          const writer = fs.createWriteStream(filePath);
+          response.data.pipe(writer);
+
+          writer.on('finish', async () => {
+            console.log('Imagem baixada e salva em /tmp:', filePath);
+
+            // Envia uma mensagem para o Discord informando sobre a imagem
+            try {
+              const server = '1303783417867141140';
+              const guild = discord.guilds.cache.get(server);
+              if (!guild) {
+                console.log('Servidor não encontrado para o contato.');
+                return;
+              }
+
+              const imageFile = `Imagem enviada do contato ${ProfileName}: ${fileName}`;
+              await handleWhatsappMessage(guild, From, imageFile, ProfileName);
+              resolve(filePath); // Resolve a Promise com o caminho do arquivo salvo
+            } catch (error) {
+              console.error('Erro ao processar a mensagem para o Discord:', error);
+              reject(error);
+            }
+          });
+
+          writer.on('error', (err) => {
+            console.error('Erro ao salvar a imagem:', err);
+            reject(err); // Rejeita a Promise em caso de erro ao salvar
+          });
+        } else {
+          console.log(`Status inesperado ao verificar imagem: ${response.status}`);
+        }
+      } catch (error) {
+        if (error.response && error.response.status === 404) {
+          console.log('Imagem ainda não disponível, tentando novamente em 2 segundos...');
+        } else {
+          console.error('Erro ao tentar baixar a imagem:', error);
+          clearInterval(intervalId); // Para o intervalo em caso de erro irreversível
+          reject(error); // Rejeita a Promise em caso de erro
+        }
+      }
+    };
+
+    // Define um intervalo para verificar a disponibilidade da imagem a cada 2 segundos
+    const intervalId = setInterval(attemptDownload, 2000);
+  });
 }
 
 
