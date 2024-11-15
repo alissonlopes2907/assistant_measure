@@ -359,115 +359,70 @@ simulateMessageDelivery(fragments, 5000, to);
 }
 
 function splitMessageBySentences(message, maxLength) {
-  let fragments = [];
-
-  // Ajusta o negrito do WhatsApp: transforma **negrito** em *negrito* para manter o padrão do WhatsApp
-  let cleanedMessage = message.replace(/\*\*(.*?)\*\*/g, '*$1*');
+  // Remove números no começo de listas, como "1.", "2)" etc.
+  let cleanedMessage = message.replace(/^\d+\.\s|\d+\)\s/gm, ''); // Remove números no início de cada linha
   
+  // Ajusta o negrito do WhatsApp: transforma **negrito** em *negrito* para manter o padrão do WhatsApp
+  cleanedMessage = cleanedMessage.replace(/\*\*(.*?)\*\*/g, '*$1*');
+
   // Remove possíveis códigos desnecessários
   cleanedMessage = cleanedMessage.replace(/【\d+:\d+†[^\]]+\】/g, '');
 
-  // Divide o texto em linhas
-  const lines = cleanedMessage.split(/\n+/);
-  
-  // Agrupa linhas em blocos: listas e parágrafos
-  let blocks = [];
-  let currentBlock = { type: null, content: '' };
-
-  lines.forEach(line => {
-    // Verifica se a linha é um item de lista, por exemplo, linhas que começam com marcadores ou termos destacados
-    if (/^\s*[-*•]\s+|^\s*[A-Za-zÀ-ÿ]+\s*:\s/.test(line)) {
-      if (currentBlock.type !== 'list') {
-        // Inicia um novo bloco de lista
-        if (currentBlock.content) {
-          blocks.push(currentBlock);
-        }
-        currentBlock = { type: 'list', content: line + '\n' };
-      } else {
-        // Continua adicionando ao bloco de lista atual
-        currentBlock.content += line + '\n';
-      }
-    } else {
-      // Linha não é uma lista
-      if (currentBlock.type !== 'paragraph') {
-        // Inicia um novo bloco de parágrafo
-        if (currentBlock.content) {
-          blocks.push(currentBlock);
-        }
-        currentBlock = { type: 'paragraph', content: line + '\n' };
-      } else {
-        // Continua adicionando ao bloco de parágrafo atual
-        currentBlock.content += line + '\n';
-      }
-    }
-  });
-
-  // Adiciona o último bloco
-  if (currentBlock.content) {
-    blocks.push(currentBlock);
+  // Verifica se o texto contém uma lista (ex.: linhas que começam com "- " ou "* ")
+  if (/^(\s*[-*•]\s|\d+\.\s|\d+\)\s)/m.test(cleanedMessage)) {
+      // Contém uma lista, então retorna o texto completo em um único fragmento
+      return [cleanedMessage.trim()];
   }
 
-  // Função auxiliar para adicionar fragmentos respeitando o maxLength
-  const addFragment = (text) => {
-    if (text.length === 0) return;
+  // Caso não seja uma lista, segue com a lógica de fragmentação
+  let fragments = [];
+  let paragraphs = cleanedMessage.split(/\n+/);
 
-    if (fragments.length === 0 || (fragments[fragments.length - 1].length + text.length + 1) > maxLength) {
-      fragments.push(text);
-    } else {
-      fragments[fragments.length - 1] += ' ' + text;
-    }
-  };
+  let currentFragment = '';
 
-  // Processa cada bloco
-  blocks.forEach(block => {
-    if (block.type === 'list') {
-      // Trata listas como blocos únicos
-      const listContent = block.content.trim();
+  // Itera sobre cada parágrafo
+  for (let p = 0; p < paragraphs.length; p++) {
+      let paragraph = paragraphs[p];
+      
+      // Divide o parágrafo em sentenças
+      let sentences = paragraph.split(/(?<=[.!?])\s+/);
 
-      // Verifica se o bloco de lista cabe no maxLength
-      if (listContent.length > maxLength) {
-        fragments.push(listContent); // Adiciona como um fragmento separado se ultrapassar o limite
-      } else {
-        addFragment(listContent);
-      }
-    } else if (block.type === 'paragraph') {
-      // Remove números no começo de listas dentro de parágrafos apenas
-      let paragraphContent = block.content.replace(/^\d+\.\s|\d+\)\s/gm, '');
+      for (let i = 0; i < sentences.length; i++) {
+          let sentence = sentences[i];
 
-      // Divide parágrafos em sentenças
-      let sentences = paragraphContent.trim().split(/(?<=[.!?])\s+/);
-
-      let currentFragment = '';
-
-      sentences.forEach(sentence => {
-        if ((currentFragment + sentence).length > maxLength) {
-          if (currentFragment.trim().length > 0) {
-            fragments.push(currentFragment.trim());
+          // Verifica se a adição da sentença atual ultrapassa o limite
+          if ((currentFragment + sentence).length > maxLength) {
+              // Se o fragmento atual já tiver conteúdo, adiciona como fragmento
+              if (currentFragment.trim().length > 0) {
+                  fragments.push(currentFragment.trim());
+              }
+              currentFragment = ''; // Reinicia o fragmento
           }
-          currentFragment = '';
-        }
 
-        // Se a sentença por si só for maior que maxLength, fragmenta a sentença
-        if (sentence.length > maxLength) {
-          let sentenceParts = sentence.match(new RegExp('.{1,' + maxLength + '}', 'g'));
-          sentenceParts.forEach(part => {
-            if (currentFragment.trim().length > 0) {
-              fragments.push(currentFragment.trim());
-              currentFragment = '';
-            }
-            fragments.push(part.trim());
-          });
-        } else {
-          currentFragment += sentence + ' ';
-        }
-      });
-
-      // Adiciona o fragmento final do parágrafo
-      if (currentFragment.trim().length > 0) {
-        fragments.push(currentFragment.trim());
+          // Se a sentença por si só for maior que maxLength, fragmenta a sentença
+          if (sentence.length > maxLength) {
+              let sentenceParts = sentence.match(new RegExp('.{1,' + maxLength + '}', 'g'));
+              sentenceParts.forEach((part, index) => {
+                  if (index === 0 && currentFragment.trim().length > 0) {
+                      fragments.push(currentFragment.trim());
+                      currentFragment = '';
+                  }
+                  fragments.push(part.trim());
+              });
+          } else {
+              // Continua acumulando sentenças no fragmento atual
+              currentFragment += sentence + ' ';
+          }
       }
-    }
-  });
+
+      // Adiciona uma quebra de linha entre parágrafos, para manter a formatação original
+      currentFragment = currentFragment.trim() + '\n';
+  }
+
+  // Adiciona o fragmento final se houver conteúdo restante
+  if (currentFragment.trim().length > 0) {
+      fragments.push(currentFragment.trim());
+  }
 
   return fragments;
 }
