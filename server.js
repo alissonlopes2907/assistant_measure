@@ -429,7 +429,6 @@ function splitMessageBySentences(message, maxLength) {
 }
 
 
-
 // Função que simula a entrega dos fragmentos com intervalos
 function simulateMessageDelivery(fragments, interval, to) {
   fragments.forEach((fragment, index) => {
