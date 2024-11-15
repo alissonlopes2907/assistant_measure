@@ -775,7 +775,7 @@ app.post('/', async (req, res) => {
   console.log(`Mensagem recebida de ${From}: ${Body}`);
   
 
-  if(From === 'whatsapp:+556792516035' || From === 'whatsapp:+554599372948' || From === 'whatsapp:+556792587367') {
+  if(From === 'whatsapp:+556792516035' || From === 'whatsapp:+554599372948' || From === 'whatsapp:+556792587367' || From === 'whatsapp:+554599801021' || From === 'whatsapp:+554588227234'  ) {
   if (MessageType === 'text' && NumMedia == 0) {
     resetTimer(Body, From, ProfileName ); // Reseta o timer sempre que uma nova mensagem é recebida
     
