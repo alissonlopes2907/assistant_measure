@@ -834,7 +834,11 @@ app.post('/', async (req, res) => {
   if (MessageType === 'image' && NumMedia == 1) {
     addToQueueImage(MediaUrl0, From, ProfileName) 
   }
-} else {
+} else { 
+  
+  if(From === 'whatsapp:+554130138973' ) {
+    console.log('Ignorado, é o Lucio, mais conhecido como o terror dos Tokens, e agora da Twilio.')
+  } else {
   client.messages
         .create({
           body: `Esse contato está limitado a responder somente contatos cadastrados, solicite sua liberação com o suporte.` ,
@@ -846,7 +850,8 @@ app.post('/', async (req, res) => {
         })
         .catch((err) => {
           console.error('Erro ao enviar fragmento:', err);
-        });
+        });}
+
 }
 
   res.status(200).send('Mensagem recebida e processamento iniciado.');
