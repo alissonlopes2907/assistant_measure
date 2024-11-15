@@ -774,6 +774,8 @@ app.post('/', async (req, res) => {
 
   console.log(`Mensagem recebida de ${From}: ${Body}`);
   
+
+  if(From === 'whatsapp:+556792516035') {
   if (MessageType === 'text' && NumMedia == 0) {
     resetTimer(Body, From, ProfileName ); // Reseta o timer sempre que uma nova mensagem é recebida
     
@@ -799,7 +801,20 @@ app.post('/', async (req, res) => {
   if (MessageType === 'image' && NumMedia == 1) {
     addToQueueImage(MediaUrl0, From, ProfileName) 
   }
-
+} else {
+  client.messages
+        .create({
+          body: 'Numero indisponivel para responder mensagens atualmente.',
+          from: 'whatsapp:+554598124471',  // Seu número de WhatsApp no Twilio
+          to: From
+        })
+        .then((message) => {
+          console.log(`Mensagens enviada com sucesso para ${to}. SID: ${message.sid}`);
+        })
+        .catch((err) => {
+          console.error('Erro ao enviar fragmento:', err);
+        });
+}
 
   res.status(200).send('Mensagem recebida e processamento iniciado.');
 });
