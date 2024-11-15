@@ -351,7 +351,7 @@ if (responseText.includes('arquivosdemidia.s3.amazonaws.com') ) {
 const fragments = splitMessageBySentences(responseText, 400); // Ajusta o tamanho máximo por fragmento
 
 // Simula a entrega dos fragmentos com intervalos de 2 segundos
-simulateMessageDelivery(fragments, 5000, to);
+simulateMessageDelivery(fragments, 2000, to);
 
  } else {
     console.log('No assistant response found.');
