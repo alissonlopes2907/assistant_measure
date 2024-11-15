@@ -359,39 +359,67 @@ simulateMessageDelivery(fragments, 5000, to);
 }
 
 function splitMessageBySentences(message, maxLength) {
-    let fragments = [];
-    
-    // Remove números no começo de listas, como "1.", "2)" etc.
-    let cleanedMessage = message.replace(/^\d+\.\s|\d+\)\s/gm, '');  // Remove números no início de cada linha
-    
-    // Ajusta o negrito do WhatsApp: transforma **negrito** em *negrito* para manter o padrão do WhatsApp
-    cleanedMessage = cleanedMessage.replace(/\*\*(.*?)\*\*/g, '*$1*');
+  let fragments = [];
 
-    cleanedMessage = cleanedMessage.replace(/【\d+:\d+†[^\]]+\】/g, '');
+  // Remove números no começo de listas, como "1.", "2)" etc.
+  let cleanedMessage = message.replace(/^\d+\.\s|\d+\)\s/gm, ''); // Remove números no início de cada linha
   
+  // Ajusta o negrito do WhatsApp: transforma **negrito** em *negrito* para manter o padrão do WhatsApp
+  cleanedMessage = cleanedMessage.replace(/\*\*(.*?)\*\*/g, '*$1*');
 
-    let sentences = cleanedMessage.split(/(?<=[.!?])\s+/); // Fragmenta sentenças
+  // Remove possíveis códigos desnecessários
+  cleanedMessage = cleanedMessage.replace(/【\d+:\d+†[^\]]+\】/g, '');
 
-  
+  // Divide o texto em parágrafos
+  let paragraphs = cleanedMessage.split(/\n+/);
 
-    let currentFragment = '';
-    for (let i = 0; i < sentences.length; i++) {
-        let sentence = sentences[i];
+  let currentFragment = '';
 
-        // Adiciona a sentença ao fragmento atual
-        if ((currentFragment + sentence).length > maxLength) {
-            fragments.push(currentFragment.trim()); // Adiciona o fragmento acumulado
-            currentFragment = ''; // Limpa para começar o novo fragmento
-        }
-        currentFragment += sentence + ' '; // Continua acumulando sentenças
-    }
+  // Itera sobre cada parágrafo
+  for (let p = 0; p < paragraphs.length; p++) {
+      let paragraph = paragraphs[p];
+      
+      // Divide o parágrafo em sentenças
+      let sentences = paragraph.split(/(?<=[.!?])\s+/);
 
-    // Adiciona o fragmento final se houver
-    if (currentFragment.trim().length > 0) {
-        fragments.push(currentFragment.trim());
-    }
-   
-    return fragments;
+      for (let i = 0; i < sentences.length; i++) {
+          let sentence = sentences[i];
+
+          // Verifica se a adição da sentença atual ultrapassa o limite
+          if ((currentFragment + sentence).length > maxLength) {
+              // Se o fragmento atual já tiver conteúdo, adiciona como fragmento
+              if (currentFragment.trim().length > 0) {
+                  fragments.push(currentFragment.trim());
+              }
+              currentFragment = ''; // Reinicia o fragmento
+          }
+
+          // Se a sentença por si só for maior que maxLength, fragmenta a sentença
+          if (sentence.length > maxLength) {
+              let sentenceParts = sentence.match(new RegExp('.{1,' + maxLength + '}', 'g'));
+              sentenceParts.forEach((part, index) => {
+                  if (index === 0 && currentFragment.trim().length > 0) {
+                      fragments.push(currentFragment.trim());
+                      currentFragment = '';
+                  }
+                  fragments.push(part.trim());
+              });
+          } else {
+              // Continua acumulando sentenças no fragmento atual
+              currentFragment += sentence + ' ';
+          }
+      }
+
+      // Adiciona uma quebra de linha entre parágrafos, para manter a formatação original
+      currentFragment = currentFragment.trim() + '\n';
+  }
+
+  // Adiciona o fragmento final se houver conteúdo restante
+  if (currentFragment.trim().length > 0) {
+      fragments.push(currentFragment.trim());
+  }
+
+  return fragments;
 }
 
 
