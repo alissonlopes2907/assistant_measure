@@ -804,7 +804,7 @@ app.post('/', async (req, res) => {
 } else {
   client.messages
         .create({
-          body: 'Numero indisponivel para responder mensagens atualmente.',
+          body: `Esse contato está limitado a responder somente contatos cadastrados, solicite sua liberação com o suporte.` ,
           from: 'whatsapp:+554598124471',  // Seu número de WhatsApp no Twilio
           to: From
         })
