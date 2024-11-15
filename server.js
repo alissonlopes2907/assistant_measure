@@ -232,7 +232,7 @@ const sendMediaToWhatsApp = async (to, mediaUrl) => {
   try {
     await client.messages.create({
       mediaUrl: [mediaUrl],  // Passa a URL da mídia
-      from:  'whatsapp:+5545998124471',  // Seu número de WhatsApp no Twilio
+      from:'whatsapp:+554598124471',  // Seu número de WhatsApp no Twilio
       to: to
     });
     console.log('Mídia enviada:', mediaUrl);
@@ -405,7 +405,7 @@ function simulateMessageDelivery(fragments, interval, to) {
       client.messages
         .create({
           body: fragment,
-          from: 'whatsapp:+5545998124471',  // Seu número de WhatsApp no Twilio
+          from: 'whatsapp:+554598124471',  // Seu número de WhatsApp no Twilio
           to: to
         })
         .then((message) => {
