@@ -370,6 +370,12 @@ function splitMessageBySentences(message, maxLength) {
   // Remove possíveis códigos desnecessários
   cleanedMessage = cleanedMessage.replace(/【\d+:\d+†[^\]]+\】/g, '');
 
+  // Verifica se o texto contém uma lista (ex.: linhas que começam com "- " ou "* ")
+  if (/^(\s*[-*•]\s|\d+\.\s|\d+\)\s)/m.test(cleanedMessage)) {
+      // Contém uma lista, então retorna o texto completo em um único fragmento
+      return [cleanedMessage.trim()];
+  }
+
   // Divide o texto em parágrafos
   let paragraphs = cleanedMessage.split(/\n+/);
 
