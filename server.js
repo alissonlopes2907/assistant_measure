@@ -348,7 +348,7 @@ if (responseText.includes('arquivosdemidia.s3.amazonaws.com') ) {
    }
 
 // Fragmenta a mensagem em pedaços menores
-const fragments = splitMessageBySentences(responseText, 200); // Ajusta o tamanho máximo por fragmento
+const fragments = splitMessageBySentences(responseText, 400); // Ajusta o tamanho máximo por fragmento
 
 // Simula a entrega dos fragmentos com intervalos de 2 segundos
 simulateMessageDelivery(fragments, 5000, to);
