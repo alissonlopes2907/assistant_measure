@@ -351,7 +351,7 @@ if (responseText.includes('arquivosdemidia.s3.amazonaws.com') ) {
 const fragments = splitMessageBySentences(responseText, 400); // Ajusta o tamanho máximo por fragmento
 
 // Simula a entrega dos fragmentos com intervalos de 2 segundos
-simulateMessageDelivery(fragments, 2000, to);
+simulateMessageDelivery(fragments, 5000, to);
 
  } else {
     console.log('No assistant response found.');
@@ -361,11 +361,8 @@ simulateMessageDelivery(fragments, 2000, to);
 function splitMessageBySentences(message, maxLength) {
   let fragments = [];
 
-  // Remove números no começo de listas, como "1.", "2)" etc.
-  let cleanedMessage = message.replace(/^\d+\.\s|\d+\)\s/gm, ''); // Remove números no início de cada linha
-  
   // Ajusta o negrito do WhatsApp: transforma **negrito** em *negrito* para manter o padrão do WhatsApp
-  cleanedMessage = cleanedMessage.replace(/\*\*(.*?)\*\*/g, '*$1*');
+  let cleanedMessage = message.replace(/\*\*(.*?)\*\*/g, '*$1*');
   
   // Remove possíveis códigos desnecessários
   cleanedMessage = cleanedMessage.replace(/【\d+:\d+†[^\]]+\】/g, '');
@@ -378,8 +375,8 @@ function splitMessageBySentences(message, maxLength) {
   let currentBlock = { type: null, content: '' };
 
   lines.forEach(line => {
-    // Verifica se a linha é um item de lista
-    if (/^\s*[-*•]\s+/.test(line)) {
+    // Verifica se a linha é um item de lista, por exemplo, linhas que começam com marcadores ou termos destacados
+    if (/^\s*[-*•]\s+|^\s*[A-Za-zÀ-ÿ]+\s*:\s/.test(line)) {
       if (currentBlock.type !== 'list') {
         // Inicia um novo bloco de lista
         if (currentBlock.content) {
@@ -429,15 +426,16 @@ function splitMessageBySentences(message, maxLength) {
 
       // Verifica se o bloco de lista cabe no maxLength
       if (listContent.length > maxLength) {
-        // Se exceder, talvez precise de uma lógica adicional para dividir listas muito longas
-        // Aqui, adicionamos como um fragmento separado
-        fragments.push(listContent);
+        fragments.push(listContent); // Adiciona como um fragmento separado se ultrapassar o limite
       } else {
         addFragment(listContent);
       }
     } else if (block.type === 'paragraph') {
+      // Remove números no começo de listas dentro de parágrafos apenas
+      let paragraphContent = block.content.replace(/^\d+\.\s|\d+\)\s/gm, '');
+
       // Divide parágrafos em sentenças
-      let sentences = block.content.trim().split(/(?<=[.!?])\s+/);
+      let sentences = paragraphContent.trim().split(/(?<=[.!?])\s+/);
 
       let currentFragment = '';
 
@@ -473,6 +471,7 @@ function splitMessageBySentences(message, maxLength) {
 
   return fragments;
 }
+
 
 
 // Função que simula a entrega dos fragmentos com intervalos
