@@ -608,7 +608,38 @@ async function processImageQueue(userName) {
 
   try {
     const filePath = await downloadImageTwilio(mediaUrl, From, userName); // Faz o download da imagem
-    
+    try {
+      const serverId = '1303379837284651090'; // Servidor de notificação
+      const channelId = '1303379837284651093'; // Canal de notificação no servidor
+  
+      // Busca o servidor específico
+      const guild = discord.guilds.cache.get(serverId);
+  
+      if (guild) {
+          // Busca o canal específico dentro do servidor
+          const canal = guild.channels.cache.get(channelId);
+  
+          if (canal) {
+              // Envia a mensagem com o arquivo de mídia
+              await canal.send({
+                  content: `Aqui está a imagem recebida do contato ${From} com o nome ${userName}:`,
+                  files: [{
+                      attachment: filePath, // Caminho do arquivo baixado
+                      name: 'image.jpeg', // Nome do arquivo ao ser enviado
+                  }]
+              });
+              console.log('Mensagem enviada com sucesso!');
+          } else {
+              console.log('Canal não encontrado no servidor especificado');
+          }
+          
+      } else {
+          console.log('Servidor não encontrado');
+      }
+  } catch (error) {
+      // Tratamento de erros
+      console.error("Ocorreu um erro:", error.message);
+  }
     if (!fs.existsSync(filePath)) {
       console.error('Arquivo não encontrado no caminho:', filePath);
       return;
