@@ -211,7 +211,7 @@ async function checkRunStatus(thread, run) {
         console.log('Run completado com sucesso!');
         return response;
       }
-      await new Promise((resolve) => setTimeout(resolve, 5000)); // Espera 10 segundos antes de checar novamente
+      await new Promise((resolve) => setTimeout(resolve, 2000)); // Espera 2 segundos antes de checar novamente
     }
   } catch (error) {
     console.error('Erro ao verificar o status do run:', error);
