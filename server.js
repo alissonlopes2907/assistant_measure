@@ -818,12 +818,12 @@ async function processMessageImage(filePath, from, userName) {
     console.log('Tentando enviar arquivo com file_id:', fileId);
 
    await messageThreadImage(thread, fileId)
-    const createRun = await runCreate(thread, assistant);
+/*    const createRun = await runCreate(thread, assistant);
    const runID = createRun.id;
  
    // Verifica o status e exibe a resposta gerada
    await checkRunStatus(thread, runID);
-   await retrieveAssistantResponse(thread, from, userName);
+   await retrieveAssistantResponse(thread, from, userName);*/
    
     
   } catch (error) {
