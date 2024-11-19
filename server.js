@@ -71,7 +71,7 @@ const openai = new OpenAI({
 let messageAccumulator = {}; // Armazena as mensagens acumuladas por usuário
 let timers = {}; // Armazena os temporizadores de cada usuário
 let currentSteps = {}; // Armazena o estado atual de contagem regressiva por usuário
-const timeSteps = [5, 5, 5, 5, 5]; // Temporizadores progressivos
+const timeSteps = [1, 1, 1, 1, 1]; // Temporizadores progressivos
 let isProcessing = {}; // Armazena o estado de processamento de cada usuário
 
 // Função que reseta o temporizador e acumula as mensagens para cada usuário
@@ -211,7 +211,7 @@ async function checkRunStatus(thread, run) {
         console.log('Run completado com sucesso!');
         return response;
       }
-      await new Promise((resolve) => setTimeout(resolve, 15000)); // Espera 10 segundos antes de checar novamente
+      await new Promise((resolve) => setTimeout(resolve, 5000)); // Espera 10 segundos antes de checar novamente
     }
   } catch (error) {
     console.error('Erro ao verificar o status do run:', error);
@@ -324,11 +324,6 @@ if (guild) {
 }
       }
 
-
- 
-
-
-
     if (responseText.toLowerCase().includes('.jpg') || 
     responseText.toLowerCase().includes('.jpeg') ||
     responseText.toLowerCase().includes('.png') || 
@@ -351,7 +346,7 @@ if (responseText.includes('arquivosdemidia.s3.amazonaws.com') ) {
 const fragments = splitMessageBySentences(responseText, 400); // Ajusta o tamanho máximo por fragmento
 
 // Simula a entrega dos fragmentos com intervalos de 2 segundos
-simulateMessageDelivery(fragments, 5000, to);
+simulateMessageDelivery(fragments, 1000, to);
 
  } else {
     console.log('No assistant response found.');
