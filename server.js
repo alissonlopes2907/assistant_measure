@@ -334,7 +334,7 @@ if (guild) {
     canal.send(`\n\n\nO ${userName} fez uma ultima analise:
       \nSegue os dados coletados: 
       
-      \n${responseText}  \n \n _____________________________________________________________________________________`);
+      \n${responseText}  \n \n _____________________________________________________________________________________ \n`);
   } else {
     console.log('Canal não encontrado no servidor especificado');
   }
