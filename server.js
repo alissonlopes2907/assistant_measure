@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 const axios = require('axios');
-const { Client, GatewayIntentBits , ChannelType} = require('discord.js');
+const { Client, AttachmentBuilder, GatewayIntentBits , ChannelType} = require('discord.js');
 const { saveOrFetchThread, getChannelIdByWhatsappId, saveChannelId } = require('./pg')
 // Cria uma nova instância do bot com as intents necessárias
 const discord = new Client({
@@ -25,37 +25,55 @@ const discord = new Client({
 
 const app = express();
 
-async function sendMessageDiscord(guild, whatsappNumber, messageContent, userName) {
-  let channelId = await getChannelIdByWhatsappId(whatsappNumber)
-  let channel = null
+async function sendMessageDiscord(guild, whatsappNumber, messageContent, userName, mediaFilePath = null) {
+  let channelId = await getChannelIdByWhatsappId(whatsappNumber);
+  let channel = null;
 
-  if(channelId) {
-    channel = guild.channels.cache.get(channelId)
-    if (!channel) {
-      console.log(`Canal com ID ${channelId} não encontrado. Criando um novo canal...`);
-    } else {
-      console.log(`Canal já existe para ${userName} com ID: ${channelId}. Enviando mensagem...`);
-    }
+  if (channelId) {
+      channel = guild.channels.cache.get(channelId);
+      if (!channel) {
+          console.log(`Canal com ID ${channelId} não encontrado. Criando um novo canal...`);
+      } else {
+          console.log(`Canal já existe para ${userName} com ID: ${channelId}. Enviando mensagem...`);
+      }
   }
 
   // Se o canal não existir, cria um novo
   if (!channel) {
-    const channelName = `canal-${whatsappNumber}-${userName}`;
-    console.log(`Criando novo canal para o ${userName}...`);
-    channel = await guild.channels.create({
-      name: channelName,
-      type: ChannelType.GuildText,
-      topic: `Canal criado para o WhatsApp: ${whatsappNumber}`,
-    });
+      const channelName = `canal-${whatsappNumber}-${userName}`;
+      console.log(`Criando novo canal para o ${userName}...`);
+      channel = await guild.channels.create({
+          name: channelName,
+          type: ChannelType.GuildText,
+          topic: `Canal criado para o WhatsApp: ${whatsappNumber}`,
+      });
 
-    // Armazena o ID do novo canal no banco de dados
-    await saveChannelId(whatsappNumber, channel.id);
+      // Armazena o ID do novo canal no banco de dados
+      await saveChannelId(whatsappNumber, channel.id);
 
-    console.log(`Canal criado com ID: ${channel.id} e armazenado para ${userName}`);
+      console.log(`Canal criado com ID: ${channel.id} e armazenado para ${userName}`);
   }
 
-  // Envia a mensagem para o canal
-  await channel.send(messageContent);
+  try {
+      // Verifica se o caminho do arquivo de mídia foi fornecido e se é válido
+      if (mediaFilePath && fs.existsSync(mediaFilePath)) {
+          const attachment = new AttachmentBuilder(mediaFilePath);
+
+          // Envia mensagem com o arquivo de mídia
+          await channel.send({
+              content: messageContent || "", // Permite enviar apenas o arquivo se o conteúdo estiver vazio
+              files: [attachment],
+          });
+
+          console.log(`Mensagem com mídia enviada para ${userName} no canal ${channel.id}`);
+      } else {
+          // Apenas envia texto se não houver mídia
+          await channel.send(messageContent || ""); // Garante que mensagens vazias não quebrem
+          console.log(`Mensagem de texto enviada para ${userName} no canal ${channel.id}`);
+      }
+  } catch (error) {
+      console.error(`Erro ao enviar mensagem para ${userName}:`, error);
+  }
 }
 
 app.use(bodyParser.json());
@@ -287,18 +305,19 @@ async function retrieveAssistantResponse(threadId, to, userName) {
    
  
     const server = '1303379760797450260'
-   const guild = discord.guilds.cache.get(server)
+    const guild = discord.guilds.cache.get(server)
 
-   if(!guild){
-    return res.status(500).json({error: 'Servidor não encontrado para o bot'})
-  } 
+    if(!guild){
+        return res.status(500).json({error: 'Servidor não encontrado para o bot'})
+    } 
 
-  try {
-    const agente = `Resposta do agente: ${responseText}`
-    await sendMessageDiscord(guild, to, agente, userName)
-  }catch (error) {
-    console.error('Erro ao processar a mensagem: ', error)
-  }
+    try {
+        const agente = `Resposta do agente: ${responseText}`
+        await sendMessageDiscord(guild, to, agente, userName, null)
+    }catch (error) {
+        console.error('Erro ao processar a mensagem: ', error)
+    }
+
 
       if (responseText.includes('#R')) {
         responseText = responseText.replace('#R', '');
@@ -470,22 +489,21 @@ async function processAudioQueue(ProfileName) {
     const filePath = await downloadAudioTwilio(mediaUrl, From); // Faz o download do áudio
     const transcricao = await transcreverAudio(filePath); // Transcreve o áudio
     console.log('Transcrição:', transcricao);
-    
+      
+  try {
+      
+  const server = '1303379760797450260'
+  const guild = discord.guilds.cache.get(server)
 
-     
-    const server = '1303379760797450260'
-   const guild = discord.guilds.cache.get(server)
+  if (!guild) {
+  console.log('Servidor não encontrado para o bot')
+  }            
 
-    if (!guild) {
-      return console.log('Servidor não encontrado para o contato.')
-    }
-  
-    try {
-       const transcriptionsAudio = `Audio transcrito do contato ${ProfileName}: ${transcricao}`
-      await sendMessageDiscord(guild, From, transcriptionsAudio, ProfileName);
-    } catch (error) {
-      console.error('Erro ao processar a mensagem:', error);
-    }
+  const transcriptionsAudio = `Audio transcrito do contato ${ProfileName}: ${transcricao}`
+   await sendMessageDiscord(guild, From, transcriptionsAudio, ProfileName, filePath);
+  } catch (error) {
+  console.log('Erro encontrado ao enviar a imagem para o discord: ', error)
+ }
 
     if (!fs.existsSync(filePath)) {
       console.error('Arquivo não encontrado no caminho:', filePath);
@@ -608,6 +626,21 @@ async function processImageQueue(userName) {
 
   try {
     const filePath = await downloadImageTwilio(mediaUrl, From, userName); // Faz o download da imagem
+    
+    try {
+      
+      const server = '1303379760797450260'
+      const guild = discord.guilds.cache.get(server)
+    
+      if (!guild) {
+      console.log('Servidor não encontrado para o bot')
+      }            
+      await sendMessageDiscord(guild, From, " ", ProfileName, filePath);
+      } catch (error) {
+      console.log('Erro encontrado ao enviar a imagem para o discord: ', error)
+     }
+    
+    
     try {
       const serverId = '1303379837284651090'; // Servidor de notificação
       const channelId = '1303379837284651093'; // Canal de notificação no servidor
