@@ -312,7 +312,7 @@ if (guild) {
   // Busca o canal específico dentro do servidor
   const canal = guild.channels.cache.get(channelId);
   if (canal) {
-    canal.send(`O ${userName} fez uma ultima analise:
+    canal.send(`\n\n\nO ${userName} fez uma ultima analise:
       \nSegue os dados coletados: 
       
       \n${responseText}`);
@@ -622,7 +622,7 @@ async function processImageQueue(userName) {
           if (canal) {
               // Envia a mensagem com o arquivo de mídia
               await canal.send({
-                  content: `Aqui está a imagem recebida do contato ${From} com o nome ${userName}:`,
+                  content: `\n \n  Aqui está a imagem recebida do contato ${From} com o nome ${userName}:`,
                   files: [{
                       attachment: filePath, // Caminho do arquivo baixado
                       name: 'image.jpeg', // Nome do arquivo ao ser enviado
@@ -696,11 +696,11 @@ async function downloadImageTwilio(MediaUrl0, From, ProfileName) {
 
             // Envia uma mensagem para o Discord informando sobre a imagem
             try {
-              const server = '1303783417867141140';
+              const server = '1303379760797450260';
               const guild = discord.guilds.cache.get(server);
               if (!guild) {
                 console.log('Servidor não encontrado para o contato.');
-                return;
+         
               }
 
               const imageFile = `Imagem enviada do contato ${ProfileName}: ${fileName}`;
