@@ -726,23 +726,7 @@ async function downloadImageTwilio(MediaUrl0, From, ProfileName) {
 
           writer.on('finish', async () => {
             console.log('Imagem baixada e salva em /tmp:', filePath);
-
-            // Envia uma mensagem para o Discord informando sobre a imagem
-            try {
-              const server = '1303379760797450260';
-              const guild = discord.guilds.cache.get(server);
-              if (!guild) {
-                console.log('Servidor não encontrado para o contato.');
-         
-              }
-
-              const imageFile = `Imagem enviada do contato ${ProfileName}: ${fileName}`;
-              await handleWhatsappMessage(guild, From, imageFile, ProfileName);
               resolve(filePath); // Resolve a Promise com o caminho do arquivo salvo
-            } catch (error) {
-              console.error('Erro ao processar a mensagem para o Discord:', error);
-              reject(error);
-            }
           });
 
           writer.on('error', (err) => {
