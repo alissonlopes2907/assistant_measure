@@ -89,7 +89,7 @@ const openai = new OpenAI({
 let messageAccumulator = {}; // Armazena as mensagens acumuladas por usuário
 let timers = {}; // Armazena os temporizadores de cada usuário
 let currentSteps = {}; // Armazena o estado atual de contagem regressiva por usuário
-const timeSteps = [1, 1, 1, 1, 1]; // Temporizadores progressivos
+const timeSteps = [0, 0, 0, 0, 0]; // Temporizadores progressivos
 let isProcessing = {}; // Armazena o estado de processamento de cada usuário
 
 // Função que reseta o temporizador e acumula as mensagens para cada usuário
