@@ -331,7 +331,7 @@ if (guild) {
   // Busca o canal específico dentro do servidor
   const canal = guild.channels.cache.get(channelId);
   if (canal) {
-    canal.send(`\n\n\nO ${userName} fez uma ultima analise:
+    canal.send(`\n\n\n\n\n\nO ${userName} fez uma ultima analise:
       \nSegue os dados coletados: 
       
       \n${responseText}  \n \n ________________________________________________________________________________________________________________________________________________________________________________________________________________________________________ \n`);
@@ -577,7 +577,7 @@ async function downloadAudioTwilio(MediaUrl0, From) {
     };
 
       // Define um intervalo para verificar a disponibilidade do áudio a cada 2 segundos
-      const intervalId = setInterval(attemptDownload, 2000);
+      const intervalId = setInterval(attemptDownload, 1000);
     });
   }
 
@@ -877,7 +877,7 @@ app.post('/', async (req, res) => {
   if (MessageType === 'image' && NumMedia == 1) {
     addToQueueImage(MediaUrl0, From, ProfileName) 
   }
-} else { 
+} else 
   
   if(From === 'whatsapp:+554130138973' ) {
     console.log('Ignorado, é o Lucio, mais conhecido como o terror dos Tokens, e agora da Twilio.')
@@ -895,7 +895,7 @@ app.post('/', async (req, res) => {
           console.error('Erro ao enviar fragmento:', err);
         });}
 
-}
+
 
   res.status(200).send('Mensagem recebida e processamento iniciado.');
 });
