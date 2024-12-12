@@ -655,7 +655,6 @@ async function processImageQueue(userName) {
           if (canal) {
               // Envia a mensagem com o arquivo de mídia
               await canal.send({
-                  content: `\n \n  Aqui está a imagem recebida do contato ${From} com o nome ${userName}:`,
                   files: [{
                       attachment: filePath, // Caminho do arquivo baixado
                       name: 'image.jpeg', // Nome do arquivo ao ser enviado
