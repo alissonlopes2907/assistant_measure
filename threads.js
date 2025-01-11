@@ -17,4 +17,4 @@ async function createThread() {
     }
 }
 
-module.exports = { createThread}
+module.exports = { createThread }

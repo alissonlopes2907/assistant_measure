@@ -217,24 +217,147 @@ async function runCreate(thread, assistant) {
 // Função para verificar o status do run
 async function checkRunStatus(thread, run) {
   try {
-    let isCompleted = false;
-    
-    while (!isCompleted) {
-      const response = await openai.beta.threads.runs.retrieve(
-        thread, run
-      );
-      console.log(`Status atual do run: ${response.status}`);
-      if (response.status === 'completed') {
-        isCompleted = true;
-        console.log('Run completado com sucesso!');
-        return response;
+      let isCompleted = false;
+      const processedToolCalls = new Set(); // Guarda ações já processadas
+
+      while (!isCompleted) {
+          // Recupera o status atual do run
+          const response = await openai.beta.threads.runs.retrieve(thread, run);
+          console.log(`Status atual do run: ${response.status}`);
+
+          if (response.status === 'completed') {
+              isCompleted = true;
+              console.log('Run completado com sucesso!');
+              return response; // Retorna a resposta final
+          }
+
+          if (response.status === 'requires_action') {
+              console.log('Necessário executar uma ação externa.');
+
+              const toolCalls = response?.required_action?.submit_tool_outputs?.tool_calls;
+
+              if (toolCalls && Array.isArray(toolCalls)) {
+                  const pendingToolCalls = toolCalls.filter(
+                      (toolCall) => !processedToolCalls.has(toolCall.id)
+                  );
+
+                  if (pendingToolCalls.length > 0) {
+                      console.log(`Processando ${pendingToolCalls.length} novas ações...`);
+                      await actionExternal(thread, run, {
+                          submit_tool_outputs: { tool_calls: pendingToolCalls },
+                      });
+
+                      // Marca as ações como processadas
+                      pendingToolCalls.forEach((toolCall) => processedToolCalls.add(toolCall.id));
+                  } else {
+                      console.log('Nenhuma nova ação para processar.');
+                  }
+              } else {
+                  console.error('Estrutura inesperada em required_action ou tool_calls ausente.');
+              }
+          } else {
+              console.log('Nenhuma ação necessária ou status não reconhecido.');
+          }
+
+          // Aguarda 2 segundos antes de tentar novamente
+          await new Promise((resolve) => setTimeout(resolve, 2000));
       }
-      await new Promise((resolve) => setTimeout(resolve, 2000)); // Espera 2 segundos antes de checar novamente
-    }
   } catch (error) {
-    console.error('Erro ao verificar o status do run:', error);
+      console.error('Erro ao verificar o status do run:', error.message || error);
   }
 }
+// Função para executar ações externas
+// Função para executar ações externas sequencialmente
+async function actionExternal(thread, run, requiredAction) {
+  try {
+      // Validações iniciais
+      if (typeof thread !== 'string' || typeof run !== 'string') {
+          throw new Error(`Valores inválidos para thread ou run. thread: ${thread}, run: ${run}`);
+      }
+
+      // Verifica se há tool_calls válidos
+      if (!requiredAction?.submit_tool_outputs?.tool_calls || !Array.isArray(requiredAction.submit_tool_outputs.tool_calls)) {
+          throw new Error('Estrutura de submit_tool_outputs.tool_calls não encontrada ou inválida.');
+      }
+
+      const toolCalls = requiredAction.submit_tool_outputs.tool_calls;
+      const validToolOutputs = [];
+
+      // Processa cada toolCall
+      for (const toolCall of toolCalls) {
+          try {
+              // Verifica se é a função send_kitchen_order
+              if (toolCall?.function?.name === 'send_server_monica') {
+                  let parameters;
+
+                  try {
+                      // Tenta analisar os argumentos da função
+                      parameters = JSON.parse(toolCall.function.arguments);
+                  } catch (error) {
+                      throw new Error(`Falha ao analisar os argumentos do toolCall: ${toolCall.function.arguments}`);
+                  }
+
+                  const resumeText = parameters?.resume;
+                  let actionExternalEx;
+
+                  // Verifica se o pedido está presente
+                  if (!resumeText) {
+                      console.error('Pedido ausente:', JSON.stringify(toolCall, null, 2));
+                      actionExternalEx = 'Itens do resumo ausente.';
+                  } else {
+                      // Envia o pedido e aguarda a resposta
+                      actionExternalEx = await sendDiscordResume(resumeText);
+                  }
+
+                  // Adiciona a saída ao array
+                  validToolOutputs.push({
+                      tool_call_id: toolCall.id,
+                      output: actionExternalEx,
+                  });
+              }
+          } catch (error) {
+              console.error(`Erro ao processar toolCall com ID ${toolCall.id}: ${error.message || error}`);
+          }
+      }
+
+      // Submete as saídas se houverem
+      if (validToolOutputs.length > 0) {
+          await openai.beta.threads.runs.submitToolOutputs(thread, run, {
+              tool_outputs: validToolOutputs,
+          });
+          console.log('Saídas submetidas com sucesso:', validedOutput);
+      } else {
+          console.warn('Nenhuma saída válida para submeter.');
+      }
+  } catch (error) {
+      console.error(`Erro na função actionExternal: ${error.message || error}`);
+  }
+}
+
+
+async function sendDiscordResume(resumeText) {
+  const serverId = '1303379837284651090'; // Substitua pelo ID do servidor correto
+  const channelId = '1303379837284651093'; // Substitua pelo ID do canal correto
+       // Busca o servidor específico
+  const guild = discord.guilds.cache.get(serverId);
+  
+  if (guild) {
+    // Busca o canal específico dentro do servidor
+    const canal = guild.channels.cache.get(channelId);
+    if (canal) {
+      canal.send(`\n\n\n
+        \n\n\n
+        \n${resumeText}  \n \n ________________________________________________________________________________________________________________________________________________________________________________________________________________________________________ \n`);
+        return "Dados enviado ao servidor com sucesso!";
+      } else {
+      console.log('Canal não encontrado no servidor especificado');
+      return "Ocorreu um erro inesperado ao enviar o pedido.";
+    }
+  } else {
+    console.log('Servidor não encontrado');
+  }
+}
+
 
 // Função para extrair todos os links do texto
 function extractLinksFromText(text) {
@@ -319,29 +442,6 @@ async function retrieveAssistantResponse(threadId, to, userName) {
     }
 
 
-      if (responseText.includes('#R')) {
-        responseText = responseText.replace('#R', '');
-
-        const serverId = '1303379837284651090'; // Substitua pelo ID do servidor correto
-const channelId = '1303379837284651093'; // Substitua pelo ID do canal correto
-     // Busca o servidor específico
-const guild = discord.guilds.cache.get(serverId);
-
-if (guild) {
-  // Busca o canal específico dentro do servidor
-  const canal = guild.channels.cache.get(channelId);
-  if (canal) {
-    canal.send(`\n\n\n\n\n\nO ${userName} fez uma ultima analise:
-      \nSegue os dados coletados: 
-      
-      \n${responseText}  \n \n ________________________________________________________________________________________________________________________________________________________________________________________________________________________________________ \n`);
-  } else {
-    console.log('Canal não encontrado no servidor especificado');
-  }
-} else {
-  console.log('Servidor não encontrado');
-}
-      }
 
     if (responseText.toLowerCase().includes('.jpg') || 
     responseText.toLowerCase().includes('.jpeg') ||
