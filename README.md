@@ -11,6 +11,7 @@ Este projeto tem como objetivo receber dados durante uma visita técnica para in
 - Twilio API para integração com o WhatsApp
 - JavaScript para desenvolvimento da aplicação
 - Banco de dados Postgress da Heroku
+- Node na execução do projeto 
 
 ## 📦 Como instalar e rodar o projeto
 
